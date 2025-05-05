@@ -1,0 +1,22 @@
+version: '3'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      - dynamodb-local
+
+  dynamodb-local:
+    image: amazon/dynamodb-local:latest
+    ports:
+      - "8000:8000"
+    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath /home/dynamodblocal"
+    volumes:
+      - dynamodb-data:/home/dynamodblocal
+
+volumes:
+  dynamodb-data:

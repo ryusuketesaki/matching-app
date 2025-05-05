@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>サンプルDBアプリ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .card {
+            margin-bottom: 20px;
+        }
+        .user-card {
+            transition: transform 0.2s;
+        }
+        .user-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .search-form {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .message-container {
+            height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        .message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 5px;
+            max-width: 80%;
+        }
+        .message.sent {
+            background-color: #007bff;
+            color: white;
+            margin-left: auto;
+        }
+        .message.received {
+            background-color: #f8f9fa;
+            margin-right: auto;
+        }
+        .message-header {
+            margin-bottom: 5px;
+            font-size: 0.8em;
+        }
+        .message.sent .message-header {
+            color: rgba(255, 255, 255, 0.8);
+        }
+        .message.received .message-header {
+            color: #6c757d;
+        }
+        .message-content {
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>サンプルDBアプリ</h1>
+            <div>
+                <span id="currentUser" class="me-3"></span>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#registerModal">
+                    新規登録
+                </button>
+                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#loginModal">
+                    ログイン
+                </button>
+                <button type="button" class="btn btn-outline-danger" onclick="logout()">
+                    ログアウト
+                </button>
+            </div>
+        </div>
+
+        <div class="search-form">
+            <form id="searchForm" class="row g-3">
+                <div class="col-md-3">
+                    <label for="searchName" class="form-label">名前</label>
+                    <input type="text" class="form-control" id="searchName">
+                </div>
+                <div class="col-md-2">
+                    <label for="searchAgeMin" class="form-label">年齢（最小）</label>
+                    <input type="number" class="form-control" id="searchAgeMin">
+                </div>
+                <div class="col-md-2">
+                    <label for="searchAgeMax" class="form-label">年齢（最大）</label>
+                    <input type="number" class="form-control" id="searchAgeMax">
+                </div>
+                <div class="col-md-2">
+                    <label for="searchGender" class="form-label">性別</label>
+                    <select class="form-select" id="searchGender">
+                        <option value="">すべて</option>
+                        <option value="male">男性</option>
+                        <option value="female">女性</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="searchLocation" class="form-label">場所</label>
+                    <input type="text" class="form-control" id="searchLocation">
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">検索</button>
+                    <button type="button" class="btn btn-secondary" onclick="resetSearch()">リセット</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="row" id="usersList">
+            <!-- ユーザー一覧がここに表示されます -->
+        </div>
+
+        <div class="d-flex justify-content-center mt-3" id="userPagination">
+            <!-- ページネーションコントロールがここに表示されます -->
+        </div>
+    </div>
+
+    <!-- 登録モーダル -->
+    <div class="modal fade" id="registerModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">ユーザー登録</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="registerForm">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">名前</label>
+                            <input type="text" class="form-control" id="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="age" class="form-label">年齢</label>
+                            <input type="number" class="form-control" id="age" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="gender" class="form-label">性別</label>
+                            <select class="form-select" id="gender" required>
+                                <option value="male">男性</option>
+                                <option value="female">女性</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="interests" class="form-label">興味</label>
+                            <input type="text" class="form-control" id="interests" placeholder="カンマ区切りで入力">
+                        </div>
+                        <div class="mb-3">
+                            <label for="location" class="form-label">場所</label>
+                            <input type="text" class="form-control" id="location" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                    <button type="button" class="btn btn-primary" onclick="registerUser()">登録</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- メッセージモーダル -->
+    <div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="messageModalLabel">メッセージ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="閉じる"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="message-container" id="messageContainer">
+                        <!-- メッセージがここに表示されます -->
+                    </div>
+                    <div class="d-flex justify-content-center mt-3" id="messagePagination">
+                        <!-- ページネーションコントロールがここに表示されます -->
+                    </div>
+                    <form id="messageForm" class="mt-3">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="messageInput" placeholder="メッセージを入力" aria-label="メッセージ入力">
+                            <button type="submit" class="btn btn-primary">送信</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ログインモーダル -->
+    <div class="modal fade" id="loginModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">ログイン</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="loginForm">
+                        <div class="mb-3">
+                            <label for="loginName" class="form-label">名前</label>
+                            <input type="text" class="form-control" id="loginName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="loginLocation" class="form-label">場所</label>
+                            <input type="text" class="form-control" id="loginLocation" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                    <button type="button" class="btn btn-primary" onclick="login()">ログイン</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentUserId = null;
+        let selectedUserId = null;
+        let currentUserPage = 1;
+        let totalUserPages = 1;
+        let currentConversation = null;
+        let currentPage = 1;
+        let totalPages = 1;
+
+        // ページ読み込み時にユーザー情報を取得
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadCurrentUser();
+            loadUsers();
+        });
+
+        async function loadCurrentUser() {
+            try {
+                const response = await fetch('/current-user');
+                if (response.ok) {
+                    const user = await response.json();
+                    currentUserId = user.id;
+                    document.getElementById('currentUser').textContent = `ようこそ、${user.name}さん`;
+                    updateUIForLoginState(true);
+                } else {
+                    updateUIForLoginState(false);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('currentUser').textContent = '';
+                currentUserId = null;
+                updateUIForLoginState(false);
+            }
+        }
+
+        async function login() {
+            try {
+                const name = document.getElementById('loginName').value.trim();
+                const location = document.getElementById('loginLocation').value.trim();
+
+                if (!name || !location) {
+                    showError('名前と場所を入力してください。');
+                    return;
+                }
+
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name, location })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'ログインに失敗しました。');
+                }
+
+                currentUserId = data.id;
+                document.getElementById('currentUser').textContent = `ようこそ、${data.name}さん`;
+
+                // ログイン状態に応じてUIを更新
+                updateUIForLoginState(true);
+
+                // モーダルを閉じる
+                const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+                if (loginModal) {
+                    loginModal.hide();
+                }
+
+                // フォームをリセット
+                document.getElementById('loginForm').reset();
+
+                // ユーザー一覧を再読み込み
+                await loadUsers();
+
+            } catch (error) {
+                console.error('Error:', error);
+                showError(error.message);
+            }
+        }
+
+        async function logout() {
+            try {
+                const response = await fetch('/logout', {
+                    method: 'POST'
+                });
+
+                if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.error || 'ログアウトに失敗しました。');
+                }
+
+                currentUserId = null;
+                document.getElementById('currentUser').textContent = '';
+
+                // ログイン状態に応じてUIを更新
+                updateUIForLoginState(false);
+
+                // ユーザー一覧を再読み込み
+                await loadUsers();
+
+            } catch (error) {
+                showError(error.message);
+            }
+        }
+
+        function updateUIForLoginState(isLoggedIn) {
+            const loginButton = document.querySelector('[data-bs-target="#loginModal"]');
+            const logoutButton = document.querySelector('button[onclick="logout()"]');
+            const registerButton = document.querySelector('[data-bs-target="#registerModal"]');
+
+            if (isLoggedIn) {
+                loginButton.style.display = 'none';
+                logoutButton.style.display = 'inline-block';
+                registerButton.style.display = 'none';
+            } else {
+                loginButton.style.display = 'inline-block';
+                logoutButton.style.display = 'none';
+                registerButton.style.display = 'inline-block';
+            }
+        }
+
+        function showError(message, type = 'danger') {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            errorDiv.role = 'alert';
+            errorDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+
+            const container = document.querySelector('.container');
+            container.insertBefore(errorDiv, container.firstChild);
+
+            // 5秒後に自動的に消える
+            setTimeout(() => {
+                errorDiv.remove();
+            }, 5000);
+        }
+
+        // ページ読み込み時にユーザー一覧を取得
+        document.addEventListener('DOMContentLoaded', loadUsers);
+
+        // 検索フォームの送信
+        document.getElementById('searchForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            loadUsers();
+        });
+
+        function resetSearch() {
+            document.getElementById('searchForm').reset();
+            loadUsers();
+        }
+
+        async function loadUsers(page = 1) {
+            try {
+                const searchParams = new URLSearchParams();
+                const name = document.getElementById('searchName').value;
+                const ageMin = document.getElementById('searchAgeMin').value;
+                const ageMax = document.getElementById('searchAgeMax').value;
+                const gender = document.getElementById('searchGender').value;
+                const location = document.getElementById('searchLocation').value;
+
+                // 検索条件が指定されている場合のみパラメータを追加
+                if (name) searchParams.append('name', name);
+                if (ageMin) searchParams.append('age_min', ageMin);
+                if (ageMax) searchParams.append('age_max', ageMax);
+                if (gender) searchParams.append('gender', gender);
+                if (location) searchParams.append('location', location);
+                searchParams.append('page', page);
+
+                const response = await fetch(`/users?${searchParams.toString()}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+
+                // ログインしている場合、自分自身を除外
+                if (currentUserId) {
+                    const filteredUsers = data.users.filter(user => user.id !== currentUserId);
+                    displayUsers(filteredUsers);
+                } else {
+                    displayUsers(data.users);
+                }
+
+                // ページネーション情報の更新
+                currentUserPage = data.pagination.current_page;
+                totalUserPages = data.pagination.total_pages;
+
+                // ページネーションコントロールの更新
+                updateUserPaginationControls();
+            } catch (error) {
+                console.error('Error loading users:', error);
+                document.getElementById('usersList').innerHTML =
+                    '<div class="col-12"><div class="alert alert-danger">ユーザー一覧の取得に失敗しました。</div></div>';
+            }
+        }
+
+        function displayUsers(users) {
+            const usersList = document.getElementById('usersList');
+            usersList.innerHTML = '';
+
+            if (!Array.isArray(users)) {
+                console.error('Users data is not an array:', users);
+                usersList.innerHTML = '<div class="col-12"><div class="alert alert-danger">不正なデータ形式です。</div></div>';
+                return;
+            }
+
+            if (users.length === 0) {
+                usersList.innerHTML = '<div class="col-12"><p class="text-center">条件に一致するユーザーはいません。</p></div>';
+                return;
+            }
+
+            users.forEach(user => {
+                if (!user || typeof user !== 'object') {
+                    console.error('Invalid user data:', user);
+                    return;
+                }
+
+                const col = document.createElement('div');
+                col.className = 'col-md-4';
+                col.innerHTML = `
+                    <div class="card user-card">
+                        <div class="card-body">
+                            <h5 class="card-title">${escapeHtml(user.name)}</h5>
+                            <p class="card-text">
+                                年齢: ${user.age}<br>
+                                性別: ${user.gender === 'male' ? '男性' : '女性'}<br>
+                                興味: ${Array.isArray(user.interests) ? user.interests.map(escapeHtml).join(', ') : ''}<br>
+                                場所: ${escapeHtml(user.location)}
+                            </p>
+                            <button class="btn btn-primary" onclick="openMessageModal('${user.id}', '${escapeHtml(user.name)}')">
+                                メッセージを送る
+                            </button>
+                        </div>
+                    </div>
+                `;
+                usersList.appendChild(col);
+            });
+        }
+
+        function escapeHtml(str) {
+            if (typeof str !== 'string') return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        async function registerUser() {
+            try {
+                // 入力値の取得とバリデーション
+                const name = document.getElementById('name').value.trim();
+                const age = parseInt(document.getElementById('age').value);
+                const gender = document.getElementById('gender').value;
+                const interests = document.getElementById('interests').value.split(',').map(i => i.trim()).filter(i => i);
+                const location = document.getElementById('location').value.trim();
+
+                // バリデーション
+                if (!name) {
+                    throw new Error('名前を入力してください。');
+                }
+                if (isNaN(age) || age < 0) {
+                    throw new Error('年齢を正しく入力してください。');
+                }
+                if (!['male', 'female'].includes(gender)) {
+                    throw new Error('性別を選択してください。');
+                }
+                if (!location) {
+                    throw new Error('場所を入力してください。');
+                }
+
+                const user = {
+                    name,
+                    age,
+                    gender,
+                    interests,
+                    location
+                };
+
+                const response = await fetch('/users', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(user)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || '登録に失敗しました。');
+                }
+
+                // 登録成功時の処理
+                currentUserId = data.id;
+                document.getElementById('currentUser').textContent = `ようこそ、${data.name}さん`;
+
+                // ログイン状態に応じてUIを更新
+                updateUIForLoginState(true);
+
+                // モーダルを閉じる
+                const registerModal = bootstrap.Modal.getInstance(document.getElementById('registerModal'));
+                if (registerModal) {
+                    registerModal.hide();
+                }
+
+                // フォームをリセット
+                document.getElementById('registerForm').reset();
+
+                // ユーザー一覧を再読み込み
+                await loadUsers();
+
+                // 成功メッセージを表示
+                showError('登録が完了しました！', 'success');
+
+            } catch (error) {
+                console.error('Error:', error);
+                showError(error.message);
+            }
+        }
+
+        function openMessageModal(userId, userName) {
+            if (!currentUserId) {
+                alert('メッセージを送信するにはログインが必要です。');
+                return;
+            }
+            selectedUserId = userId;
+            document.getElementById('messageModalLabel').textContent = `${userName}とのメッセージ`;
+            document.getElementById('messageContainer').innerHTML = '';
+
+            const messageModal = new bootstrap.Modal(document.getElementById('messageModal'));
+            messageModal.show();
+
+            // モーダルが表示された後にメッセージを読み込む
+            document.getElementById('messageModal').addEventListener('shown.bs.modal', function () {
+                loadMessages(currentUserId, userId);
+            });
+        }
+
+        async function loadMessages(userId1, userId2, page = 1) {
+            try {
+                console.log('Loading messages for:', { userId1, userId2, page, currentUserId }); // デバッグ用
+
+                const response = await fetch(`/messages/${userId1}/${userId2}?page=${page}`);
+                if (!response.ok) {
+                    throw new Error('メッセージの取得に失敗しました');
+                }
+                const data = await response.json();
+                console.log('Response data:', data); // デバッグ用
+
+                const messageContainer = document.getElementById('messageContainer');
+                messageContainer.innerHTML = '';
+
+                if (!data.messages || !Array.isArray(data.messages)) {
+                    console.error('Invalid messages data:', data);
+                    return;
+                }
+
+                data.messages.forEach(message => {
+                    if (!message) return;
+
+                    // メッセージデータの構造を確認
+                    console.log('Raw message data:', JSON.stringify(message, null, 2));
+
+                    const messageElement = document.createElement('div');
+                    const senderId = message.sender_id || message.senderId; // 両方の可能性を考慮
+                    const isCurrentUser = senderId === currentUserId;
+                    messageElement.className = `message ${isCurrentUser ? 'sent' : 'received'}`;
+
+                    // タイムスタンプの処理を改善
+                    let timestamp = '';
+                    if (message.timestamp) {
+                        try {
+                            const date = new Date(message.timestamp);
+                            if (!isNaN(date.getTime())) {
+                                timestamp = date.toLocaleString('ja-JP', {
+                                    year: 'numeric',
+                                    month: '2-digit',
+                                    day: '2-digit',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                });
+                            }
+                        } catch (e) {
+                            console.error('Invalid timestamp:', message.timestamp);
+                        }
+                    }
+
+                    const messageContent = message.content || '';
+                    const messageHeader = isCurrentUser ? 'あなた' : '相手';
+
+                    messageElement.innerHTML = `
+                        <div class="message-header">${messageHeader}</div>
+                        <div class="message-content">${messageContent}</div>
+                        <div class="message-time">${timestamp}</div>
+                    `;
+                    messageContainer.appendChild(messageElement);
+                });
+
+                // メッセージコンテナを最下部にスクロール
+                messageContainer.scrollTop = messageContainer.scrollHeight;
+
+                // ページネーション情報の更新
+                currentPage = data.pagination?.current_page || 1;
+                totalPages = data.pagination?.total_pages || 1;
+                currentConversation = { userId1, userId2 };
+
+                // ページネーションコントロールの更新
+                updatePaginationControls();
+            } catch (error) {
+                console.error('Error loading messages:', error);
+                showError('メッセージの取得に失敗しました');
+            }
+        }
+
+        function updatePaginationControls() {
+            const paginationContainer = document.getElementById('messagePagination');
+            if (!paginationContainer) return;
+
+            paginationContainer.innerHTML = '';
+
+            if (totalPages <= 1) return;
+
+            const pagination = document.createElement('nav');
+            pagination.setAttribute('aria-label', 'メッセージページネーション');
+
+            const ul = document.createElement('ul');
+            ul.className = 'pagination';
+
+            // 前のページボタン
+            if (currentPage > 1) {
+                const li = document.createElement('li');
+                li.className = 'page-item';
+                li.innerHTML = `
+                    <a class="page-link" href="#" onclick="loadMessages(currentConversation.userId1, currentConversation.userId2, ${currentPage - 1}); return false;">
+                        前のページ
+                    </a>
+                `;
+                ul.appendChild(li);
+            }
+
+            // ページ番号
+            for (let i = 1; i <= totalPages; i++) {
+                const li = document.createElement('li');
+                li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+                li.innerHTML = `
+                    <a class="page-link" href="#" onclick="loadMessages(currentConversation.userId1, currentConversation.userId2, ${i}); return false;">
+                        ${i}
+                    </a>
+                `;
+                ul.appendChild(li);
+            }
+
+            // 次のページボタン
+            if (currentPage < totalPages) {
+                const li = document.createElement('li');
+                li.className = 'page-item';
+                li.innerHTML = `
+                    <a class="page-link" href="#" onclick="loadMessages(currentConversation.userId1, currentConversation.userId2, ${currentPage + 1}); return false;">
+                        次のページ
+                    </a>
+                `;
+                ul.appendChild(li);
+            }
+
+            pagination.appendChild(ul);
+            paginationContainer.appendChild(pagination);
+        }
+
+        async function sendMessage() {
+            if (!currentUserId || !selectedUserId) {
+                showError('メッセージを送信するにはログインが必要です。');
+                return;
+            }
+
+            const messageInput = document.getElementById('messageInput');
+            const content = messageInput.value.trim();
+
+            if (!content) {
+                showError('メッセージを入力してください。');
+                return;
+            }
+
+            try {
+                const response = await fetch('/messages', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        sender_id: currentUserId,
+                        receiver_id: selectedUserId,
+                        content: content
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'メッセージの送信に失敗しました。');
+                }
+
+                messageInput.value = '';
+                await loadMessages(currentUserId, selectedUserId);
+            } catch (error) {
+                console.error('Error:', error);
+                showError(error.message);
+            }
+        }
+
+        // メッセージフォームの送信イベントリスナーを追加
+        document.getElementById('messageForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            sendMessage();
+        });
+
+        function updateUserPaginationControls() {
+            const paginationContainer = document.getElementById('userPagination');
+            paginationContainer.innerHTML = '';
+
+            if (totalUserPages <= 1) return;
+
+            // 前のページボタン
+            if (currentUserPage > 1) {
+                const prevButton = document.createElement('button');
+                prevButton.className = 'btn btn-outline-primary me-2';
+                prevButton.textContent = '前のページ';
+                prevButton.onclick = () => loadUsers(currentUserPage - 1);
+                paginationContainer.appendChild(prevButton);
+            }
+
+            // ページ番号
+            const pageInfo = document.createElement('span');
+            pageInfo.className = 'mx-2';
+            pageInfo.textContent = `${currentUserPage} / ${totalUserPages}`;
+            paginationContainer.appendChild(pageInfo);
+
+            // 次のページボタン
+            if (currentUserPage < totalUserPages) {
+                const nextButton = document.createElement('button');
+                nextButton.className = 'btn btn-outline-primary';
+                nextButton.textContent = '次のページ';
+                nextButton.onclick = () => loadUsers(currentUserPage + 1);
+                paginationContainer.appendChild(nextButton);
+            }
+        }
+    </script>
+</body>
+</html>
