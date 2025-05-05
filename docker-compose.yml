@@ -18,5 +18,15 @@ services:
     volumes:
       - dynamodb-data:/home/dynamodblocal
 
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:2.13.0
+    container_name: opensearch-dashboards
+    ports:
+      - "5601:5601"
+    environment:
+      OPENSEARCH_HOSTS: '["http://opensearch:9200"]'
+    depends_on:
+      - opensearch
+
 volumes:
   dynamodb-data:
