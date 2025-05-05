@@ -10,11 +10,17 @@ class OpenSearchUserRepository
 {
     private Client $client;
     private string $index;
+    private string $username;
+    private string $password;
 
-    public function __construct(string $endpoint, string $index)
+    public function __construct(string $endpoint, string $index, string $username = 'admin', string $password = 'Gpt4!Secure2024$')
     {
+        $this->username = $username;
+        $this->password = $password;
         $this->client = ClientBuilder::create()
             ->setHosts([$endpoint])
+            ->setBasicAuthentication($this->username, $this->password)
+            ->setSSLVerification(false)
             ->build();
         $this->index = $index;
     }
@@ -27,7 +33,35 @@ class OpenSearchUserRepository
             'body' => $user->toArray()
         ];
 
-        $this->client->index($params);
+        try {
+            $this->client->index($params);
+        } catch (\Exception $e) {
+            // インデックスが存在しない場合は自動作成
+            if (strpos($e->getMessage(), 'index_not_found_exception') !== false) {
+                $this->client->indices()->create([
+                    'index' => $this->index,
+                    'body' => [
+                        'settings' => [
+                            'number_of_shards' => 1
+                        ],
+                        'mappings' => [
+                            'properties' => [
+                                'id' =>    [ 'type' => 'keyword' ],
+                                'name' =>  [ 'type' => 'text' ],
+                                'age' =>   [ 'type' => 'integer' ],
+                                'gender' => [ 'type' => 'keyword' ],
+                                'interests' => [ 'type' => 'keyword' ],
+                                'location' => [ 'type' => 'keyword' ]
+                            ]
+                        ]
+                    ]
+                ]);
+                // 再度データ投入
+                $this->client->index($params);
+            } else {
+                throw $e;
+            }
+        }
     }
 
     public function search(array $criteria): array
