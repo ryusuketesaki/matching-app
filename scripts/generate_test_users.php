@@ -4,6 +4,7 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 use App\Entity\User;
 use App\Repository\DynamoDBUserRepository;
+use App\Repository\OpenSearchUserRepository;
 use Aws\DynamoDb\DynamoDbClient;
 
 // DynamoDBクライアントの設定
@@ -18,6 +19,11 @@ $client = new DynamoDbClient([
 ]);
 
 $userRepository = new DynamoDBUserRepository($client, 'users');
+
+// OpenSearchリポジトリの設定
+$opensearchEndpoint = getenv('OPENSEARCH_ENDPOINT') ?: 'https://opensearch:9200';
+$opensearchIndex = getenv('OPENSEARCH_INDEX') ?: 'users';
+$openSearchRepository = new OpenSearchUserRepository($opensearchEndpoint, $opensearchIndex, 'admin', 'Gpt4!Secure2024$');
 
 // テストデータの設定
 $names = ['山田', '佐藤', '鈴木', '田中', '高橋', '伊藤', '渡辺', '中村', '小林', '加藤'];
@@ -66,7 +72,14 @@ for ($i = 0; $i < $totalUsers; $i++) {
                 $userRepository->save($user);
                 echo "ユーザーを保存しました: {$user->getName()}\n";
             } catch (\Exception $e) {
-                echo "エラー: {$e->getMessage()}\n";
+                echo "DynamoDBエラー: {$e->getMessage()}\n";
+            }
+            // OpenSearchにも登録
+            try {
+                $openSearchRepository->index($user);
+                echo "OpenSearchにも登録: {$user->getName()}\n";
+            } catch (\Exception $e) {
+                echo "OpenSearchエラー: {$e->getMessage()}\n";
             }
         }
         $users = [];
